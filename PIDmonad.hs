@@ -16,7 +16,7 @@ class (Num v, Monad m, Monad p) => PIDMonad m v p | p->m, p->v where
     control :: (v,v,v) -> p v
     apply :: (v,v,v) -> p ()
     lift :: m a -> p a
-    --run :: p a -> Sensorval v -> m a
+    run :: p a -> Sensorval v -> m a
 
 
 class (Ord v , Num v, Monad m) => HasSensor m v where
@@ -51,6 +51,6 @@ instance (Monad m, HasSensor m v, Applicative (PA m v)) => PIDMonad m v (PA m v)
     control (kp, ki, kd) = PA $ \s -> let (PA m1) = drift in m1 s >>= \ (PS i d v, e) -> return (PS i d v , (kp*e)+(ki*i)+(kd*d))
     apply (kp, ki, kd) = PA $ \s -> let (PA m1) = control (kp,ki,kd) in m1 s >>= \(s1,c) -> controlActuator c >>= \a -> return (s1,a)
     lift m = PA $ \s -> m >>= \a -> return (s,a)
-    
+    run (PA m) sp = m (PS 0 0 sp) >>= \ (_,a) -> return a
 
 main = putStrLn "hello World"
