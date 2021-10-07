@@ -4,7 +4,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+module PIDmonad where
 import Control.Monad
+import Control.Applicative (Applicative)
 
 newtype Sensorval v = Sensorval v deriving (Eq, Ord)
 
@@ -40,8 +42,14 @@ instance HasSensor IO Double where
 data PS v = PS {integral_err :: v, deriv_err :: v, target :: Sensorval v}
 data PA m v a = PA (PS v -> m (PS v , a))
 
-instance (Monad m, HasSensor m v, Applicative (PA m v)) => Monad (PA m v) where
-    return a = PA (\s -> return (s,a))
+instance (Monad m, HasSensor m v) => Functor (PA m v) where 
+    fmap = liftM
+
+instance (Monad m, HasSensor m v) => Applicative (PA m v) where 
+    pure a = PA (\s -> return (s,a))
+    (<*>) = ap
+
+instance (Monad m, HasSensor m v) => Monad (PA m v) where
     PA m >>= f = PA (\s -> m s >>= \(s1,a) -> let (PA m1) = f a in m1 s1)
 
 instance (Monad m, HasSensor m v, Applicative (PA m v)) => PIDMonad m v (PA m v) where
