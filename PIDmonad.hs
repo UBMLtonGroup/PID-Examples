@@ -65,9 +65,9 @@ instance (Monad m, HasSensor m v, Applicative (PA m v)) => PIDMonad m v (PA m v)
     control (kp, ki, kd) = PA $ \s -> let (PA m1) = drift in m1 s >>= \ (PS i d v, e) -> return (PS i d v , (kp*e)+(ki*i)+(kd*d))
     apply (kp, ki, kd) = PA $ \s -> let (PA m1) = control (kp,ki,kd) in m1 s >>= \(s1,c) -> controlActuator c >>= \a -> return (s1,a)
     lift m = PA $ \s -> m >>= \a -> return (s,a)
-    --run (PA m)  =m (PS 0 0 (Sensorval 1)) >>= \ (_,a) -> return a
+    run (PA m) sp =m (PS 0 0 sp) >>= \ (_,a) -> return a
     -- run (PA m) sp = let loop s = do { (ss,_) <- m s; trace "." loop ss} in loop (PS 0 0 sp)
-    run = runTo 0
+    --run = runTo 0
 
 step :: (Integral n, Monad m, HasSensor m v) => n -> PA m v a -> PS v -> m (PS v, a)
 step 0 (PA m) s = m s
