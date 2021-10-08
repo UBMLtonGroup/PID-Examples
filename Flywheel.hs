@@ -4,6 +4,7 @@ import Control.Monad.State.Lazy
     ( MonadState(put, get), evalState, State )
 
 import Debug.Trace ( trace ) 
+import Text.Printf (printf)
 
 type SimState = State (Double, Double)
 
@@ -24,7 +25,7 @@ speed = get >>= \(_, omega) -> return omega
 
 torque :: Double -> SimState ()
 torque tau = get >>= \(theta, omega) 
-    -> trace (show omega ++ "\n") put (theta + omega * dt, omega + 1.0/i * (tau - c * omega) * dt)
+    -> trace (printf "%0.03f" omega) put (theta + omega * dt, omega + 1.0/i * (tau - c * omega) * dt)
 
 runSim :: SimState () -> Double
 runSim s = evalState (s >>= \() -> speed) (0.0, 0.0)
