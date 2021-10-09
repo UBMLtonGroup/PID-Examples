@@ -33,14 +33,17 @@ class (Ord v , Num v, Monad m) => HasSensor m v where
     getDiff v = do
         {r <- getSensorVal; return (diff r v)}
 
-getSensorReading :: IO (Sensorval Double)
-getSensorReading = return (Sensorval 10.0)
+getSensorReadingA :: IO (Sensorval Double)
+getSensorReadingA = return (Sensorval 0.0)
+
+getSensorReadingB :: IO (Sensorval Double)
+getSensorReadingB = return (Sensorval 1.0)
 
 controlDevice ::   Double -> IO ()
-controlDevice v = return ()
+controlDevice v = print v
 
 instance HasSensor IO Double where
-    getSensorVal = getSensorReading
+    getSensorVal = getSensorReadingA
     controlActuator = controlDevice
 
 data PS v = PS {integral_err :: v, deriv_err :: v, target :: Sensorval v}
@@ -60,12 +63,12 @@ instance (Monad m, HasSensor m v, Applicative (PA m v)) => PIDMonad m v (PA m v)
     current = PA $ \s -> let PS _ _ v = s in return (s,v)
     setSP n = PA $ \s -> let PS i d _ = s in return (PS i d (Sensorval n), ())
     drift = PA $ \s -> let PS i d v = s in getDiff v >>= \e -> return (s , e)
-    control (kp, ki, kd) = PA $ \s -> let PS i d v = s in getDiff v >>= \e -> let PS i d v = s in
-        return (PS (i+e) e v , (kp*e)+(ki*i)+(kd*d))
+    control (kp, ki, kd) = PA $ \s -> let PS _ _ v = s in getDiff v >>= \e -> let PS i d v = s in
+        return (PS (i+e) e v, (kp*e)+(ki*(i+e))+(kd*(e-d)))
     --control (kp, ki, kd) = PA $ \s -> let (PA m1) = drift in m1 s >>= \ (PS i d v, e) -> return (PS i d v , (kp*e)+(ki*i)+(kd*d))
     apply (kp, ki, kd) = PA $ \s -> let (PA m1) = control (kp,ki,kd) in m1 s >>= \(s1,c) -> controlActuator c >>= \a -> return (s1,a)
     lift m = PA $ \s -> m >>= \a -> return (s,a)
-    run (PA m) sp =m (PS 0 0 sp) >>= \ (_,a) -> return a
+    run (PA m) sp = snd <$> m (PS 0 0 sp)
     --run (PA m) sp = let loop s = do { (ss,_) <- m s; trace "." loop ss} in loop (PS 0 0 sp)
     --run (PA m) sp = flip fix (1,PS 0 0 sp) $ \loop (n,s) -> do {(ss,a)<- m s; putStrLn "hi" >>  loop (n+1,ss)}
     --run = runTo 0
@@ -85,8 +88,8 @@ rep n a = a *> rep (n-1) a
 type PIO = PA IO Double
 
 instance HasSensor PIO Double where
-    getSensorVal = lift getSensorReading
-    controlActuator = setSP
+    getSensorVal = lift getSensorReadingB
+    controlActuator v = setSP v >>= \() -> trace ("SSP: " ++ show v) secondary
 
 {- runSt :: Monad m => PA m v a -> PS v -> m (PS v, a)
 runSt (PA m) s = m s >>= \(s1,a) -> return (s1,a)
@@ -111,9 +114,10 @@ primary = apply (1,2,3)
 secondary :: PA IO Double ()
 secondary = apply (1,2,3)
 
---cascade s = let PA m1 =primary in m1 s >>= \(PS i d v,_) ->  let PA m2 = secondary in m2 (PS 0 0 v) >>= \(_,a) -> return a
+cascade :: Sensorval Double -> Sensorval Double -> IO ()
+cascade primarySP secondaryInitSP = run (run (rep 10 primary) primarySP) secondaryInitSP
 
--- ## using control and apply
+{- -- ## using control and apply
 primaryC :: PA IO Double Double
 primaryC = control (1,2,3)
 
@@ -124,7 +128,7 @@ cascade :: (Monad m, HasSensor m v) => PA m v a -> (a -> PA m v b) -> PS v -> PS
 cascade (PA m) f s1 s2 = m s1 >>= \(s1',c) -> let (PA m2) = f c in m2 s2 >>= \(s2',a) -> return a
 
 test = cascade primaryC secondaryC 
-
+ -}
 
 --doit2 :: (Monad m, HasSensor m v) => Sensorval v -> (v, v, v) -> m ()
 --doit2 sp g =  run (apply g) sp

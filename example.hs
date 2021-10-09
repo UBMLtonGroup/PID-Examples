@@ -8,26 +8,26 @@ import PIDmonad (
         Sensorval(Sensorval),
         PIDMonad(apply, run),
         PA, PIDMonad,
-        doit2, runTo, rep
+        rep
     )
 
 -- PID Gains
 kp :: Double
-kp = 0.0120
+kp = 0.011
 ki :: Double
-ki = 0.0010
+ki = 0.001
 kd :: Double
-kd = 0.0000
+kd = 0.000
 
 instance HasSensor SimState Double where
     getSensorVal = fmap Sensorval speed
     controlActuator = torque
 
-apply_ :: (Double, Double, Double) -> PA SimState Double ()
-apply_ = apply
+controller :: PA SimState Double ()
+controller = apply (kp, ki, kd)
 
 go :: Double -> SimState ()
-go sp = run (rep 10 (apply_ (kp, ki, kd) :: PA SimState Double ())) (Sensorval sp)
+go sp = run (rep 10 controller) (Sensorval sp)
 
 main :: IO ()
 main = print $ runSim (go 100)
