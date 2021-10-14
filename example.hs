@@ -26,8 +26,8 @@ instance HasSensor SimState Double where
 controller :: PA SimState Double ()
 controller = apply (kp, ki, kd)
 
-go :: Double -> SimState ()
-go sp = run (rep 10 controller) (Sensorval sp)
+sim :: SimState ()
+sim = run (rep 10 controller) (Sensorval 100)
 
 main :: IO ()
-main = print $ runSim (go 100)
+main = print $ runSim sim

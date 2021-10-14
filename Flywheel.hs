@@ -21,7 +21,7 @@ dt :: Double
 dt = 0.01 -- s
 
 speed :: SimState Double
-speed = get >>= \(_, omega) -> return omega
+speed = fmap snd get
 
 torque :: Double -> SimState ()
 torque tau = get >>= \(theta, omega) 
