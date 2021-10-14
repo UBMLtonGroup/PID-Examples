@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+module TimedMonad where
 import Control.Monad
 
 newtype Time d = Time d deriving (Eq, Ord)
@@ -53,4 +54,3 @@ instance (Monad m, HasTimer m d, Applicative (TA m d)) => TimedMonad m d (TA m d
     run (TA m) = getRealTime >>= m >>= \ (_,a) -> return a
 
 
-main = putStrLn "hello World"

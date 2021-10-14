@@ -5,7 +5,7 @@
 import Flywheel ( SimState, speed, torque, runSim )
 import PIDmonad ( 
         HasSensor(getSensorVal, controlActuator),
-        Sensorval(Sensorval),
+        Measurement(Measurement),
         PIDMonad(apply, run),
         PA, PIDMonad,
         rep
@@ -20,14 +20,14 @@ kd :: Double
 kd = 0.000
 
 instance HasSensor SimState Double where
-    getSensorVal = fmap Sensorval speed
+    getSensorVal = fmap Measurement speed
     controlActuator = torque
 
 controller :: PA SimState Double ()
 controller = apply (kp, ki, kd)
 
 sim :: SimState ()
-sim = run (rep 10 controller) (Sensorval 100)
+sim = run (Measurement 100) (rep 10 controller)
 
 main :: IO ()
 main = print $ runSim sim
